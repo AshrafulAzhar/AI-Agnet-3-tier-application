@@ -8,7 +8,7 @@ namespace UserManagement.Domain.Interfaces
     {
         Task<UserResponse> RegisterUserAsync(UserRegistrationRequest request);
         Task<UserResponse> UpdateUserAsync(string id, UserUpdateRequest request);
-        Task<UserResponse> UpdateUserRoleStatusAsync(string id, UserRoleStatusUpdateRequest request);
+        Task<UserResponse> UpdateUserRoleStatusAsync(string id, UserRoleStatusUpdateRequest request, string performingUserId);
         Task<UserResponse> GetUserByIdAsync(string id);
         Task<IEnumerable<UserResponse>> GetAllUsersAsync();
     }

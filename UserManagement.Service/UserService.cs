@@ -48,8 +48,8 @@ namespace UserManagement.Service
                 PhoneNumber = request.PhoneNumber,
                 PasswordHash = BC.HashPassword(request.Password),
                 DateOfBirth = request.DateOfBirth,
-                Role = UserRole.User, // Default Role
-                Status = UserStatus.Active, // Default Status
+                Role = UserRole.User,
+                Status = UserStatus.Active,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow
             };
@@ -86,22 +86,30 @@ namespace UserManagement.Service
             return MapToResponse(user);
         }
 
-        public async Task<UserResponse> UpdateUserRoleStatusAsync(string id, UserRoleStatusUpdateRequest request)
+        public async Task<UserResponse> UpdateUserRoleStatusAsync(string id, UserRoleStatusUpdateRequest request, string performingUserId)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-            if (user == null || user.IsDeleted) throw new Exception("User not found.");
+            // 1. Service Level Authorization
+            var performer = await _userRepository.GetByIdAsync(performingUserId);
+            if (performer == null || performer.Role != UserRole.Admin)
+            {
+                throw new UnauthorizedAccessException("Only administrators can perform role or status changes.");
+            }
 
+            // 2. Fetch Target User
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null || user.IsDeleted) throw new Exception("Target user not found.");
+
+            // 3. Process Role Change
             if (request.Role.HasValue && user.Role != request.Role.Value)
             {
-                // Audit Role Change
-                Console.WriteLine($"[AUDIT] User {id} role changed from {user.Role} to {request.Role.Value} at {DateTime.UtcNow}");
+                Console.WriteLine($"[AUDIT] User {id} role changed from {user.Role} to {request.Role.Value} by Admin {performingUserId} at {DateTime.UtcNow}");
                 user.Role = request.Role.Value;
             }
 
+            // 4. Process Status Change
             if (request.Status.HasValue && user.Status != request.Status.Value)
             {
-                // Audit Status Change
-                Console.WriteLine($"[AUDIT] User {id} status changed from {user.Status} to {request.Status.Value} at {DateTime.UtcNow}");
+                Console.WriteLine($"[AUDIT] User {id} status changed from {user.Status} to {request.Status.Value} by Admin {performingUserId} at {DateTime.UtcNow}");
                 user.Status = request.Status.Value;
             }
 

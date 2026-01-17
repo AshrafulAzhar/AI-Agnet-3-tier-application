@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UserManagement.Domain.DTOs;
@@ -25,7 +26,7 @@ namespace UserManagement.Api.Controllers
                 var result = await _userService.RegisterUserAsync(request);
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
@@ -39,22 +40,34 @@ namespace UserManagement.Api.Controllers
                 var result = await _userService.UpdateUserAsync(id, request);
                 return Ok(result);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
 
+        // [Authorize(Roles = "Admin")] // This would be the production attribute
         [HttpPatch("{id}/management")]
-        public async Task<ActionResult<UserResponse>> UpdateManagement(string id, [FromBody] UserRoleStatusUpdateRequest request)
+        public async Task<ActionResult<UserResponse>> UpdateManagement(
+            string id, 
+            [FromBody] UserRoleStatusUpdateRequest request,
+            [FromHeader(Name = "X-Admin-User-Id")] string performingUserId)
         {
             try
             {
-                // Note: In a real app, this endpoint would be restricted to Admin users via [Authorize(Roles = "Admin")]
-                var result = await _userService.UpdateUserRoleStatusAsync(id, request);
+                if (string.IsNullOrEmpty(performingUserId))
+                {
+                    return BadRequest(new { message = "Performing User ID is required in X-Admin-User-Id header for and authorization." });
+                }
+
+                var result = await _userService.UpdateUserRoleStatusAsync(id, request, performingUserId);
                 return Ok(result);
             }
-            catch (System.Exception ex)
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+            catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
