@@ -9,6 +9,7 @@ using UserManagement.Domain.Interfaces;
 using UserManagement.Repository;
 using UserManagement.Repository.Settings;
 using UserManagement.Service;
+using UserManagement.Service.Settings;
 using UserManagement.Service.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDbSettings"));
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
@@ -32,6 +36,7 @@ builder.Services.AddScoped(sp =>
 
 // Layer Registrations
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 // Validator Registrations for Registration

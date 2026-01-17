@@ -13,15 +13,18 @@ namespace UserManagement.Service
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEmailService _emailService;
         private readonly IEnumerable<IValidator<UserRegistrationRequest>> _registrationValidators;
         private readonly IEnumerable<IValidator<UserUpdateRequest>> _updateValidators;
 
         public UserService(
             IUserRepository userRepository, 
+            IEmailService emailService,
             IEnumerable<IValidator<UserRegistrationRequest>> registrationValidators,
             IEnumerable<IValidator<UserUpdateRequest>> updateValidators)
         {
             _userRepository = userRepository;
+            _emailService = emailService;
             _registrationValidators = registrationValidators;
             _updateValidators = updateValidators;
         }
@@ -56,6 +59,9 @@ namespace UserManagement.Service
 
             await _userRepository.AddAsync(user);
 
+            // Send Welcome Email
+            await _emailService.SendWelcomeEmailAsync(user.Email, user.DisplayName);
+
             return MapToResponse(user);
         }
 
@@ -88,25 +94,21 @@ namespace UserManagement.Service
 
         public async Task<UserResponse> UpdateUserRoleStatusAsync(string id, UserRoleStatusUpdateRequest request, string performingUserId)
         {
-            // 1. Service Level Authorization
             var performer = await _userRepository.GetByIdAsync(performingUserId);
             if (performer == null || performer.Role != UserRole.Admin)
             {
                 throw new UnauthorizedAccessException("Only administrators can perform role or status changes.");
             }
 
-            // 2. Fetch Target User
             var user = await _userRepository.GetByIdAsync(id);
             if (user == null || user.IsDeleted) throw new Exception("Target user not found.");
 
-            // 3. Process Role Change
             if (request.Role.HasValue && user.Role != request.Role.Value)
             {
                 Console.WriteLine($"[AUDIT] User {id} role changed from {user.Role} to {request.Role.Value} by Admin {performingUserId} at {DateTime.UtcNow}");
                 user.Role = request.Role.Value;
             }
 
-            // 4. Process Status Change
             if (request.Status.HasValue && user.Status != request.Status.Value)
             {
                 Console.WriteLine($"[AUDIT] User {id} status changed from {user.Status} to {request.Status.Value} by Admin {performingUserId} at {DateTime.UtcNow}");
