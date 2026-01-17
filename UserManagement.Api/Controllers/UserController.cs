@@ -31,6 +31,20 @@ namespace UserManagement.Api.Controllers
             }
         }
 
+        [HttpPut("{id}")]
+        public async Task<ActionResult<UserResponse>> Update(string id, [FromBody] UserUpdateRequest request)
+        {
+            try
+            {
+                var result = await _userService.UpdateUserAsync(id, request);
+                return Ok(result);
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponse>> GetById(string id)
         {

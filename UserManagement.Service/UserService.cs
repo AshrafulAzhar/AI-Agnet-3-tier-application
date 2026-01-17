@@ -12,14 +12,17 @@ namespace UserManagement.Service
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
-        private readonly IEnumerable<IValidator<UserRegistrationRequest>> _validators;
+        private readonly IEnumerable<IValidator<UserRegistrationRequest>> _registrationValidators;
+        private readonly IEnumerable<IValidator<UserUpdateRequest>> _updateValidators;
 
         public UserService(
             IUserRepository userRepository, 
-            IEnumerable<IValidator<UserRegistrationRequest>> validators)
+            IEnumerable<IValidator<UserRegistrationRequest>> registrationValidators,
+            IEnumerable<IValidator<UserUpdateRequest>> updateValidators)
         {
             _userRepository = userRepository;
-            _validators = validators;
+            _registrationValidators = registrationValidators;
+            _updateValidators = updateValidators;
         }
 
         public async Task<UserResponse> RegisterUserAsync(UserRegistrationRequest request)
@@ -28,8 +31,8 @@ namespace UserManagement.Service
             request.Email = NormalizeEmail(request.Email);
             request.PhoneNumber = NormalizePhone(request.PhoneNumber);
 
-            // 2. Run Modular Validators
-            foreach (var validator in _validators)
+            // 2. Run Registration Validators
+            foreach (var validator in _registrationValidators)
             {
                 await validator.ValidateAsync(request);
             }
@@ -51,8 +54,38 @@ namespace UserManagement.Service
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 4. Persist
             await _userRepository.AddAsync(user);
+
+            return MapToResponse(user);
+        }
+
+        public async Task<UserResponse> UpdateUserAsync(string id, UserUpdateRequest request)
+        {
+            // 0. Ensure user exists
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null || user.IsDeleted) throw new Exception("User not found.");
+
+            // 1. Normalization
+            request.Id = id; // Set context for uniqueness check
+            request.PhoneNumber = NormalizePhone(request.PhoneNumber);
+
+            // 2. Run Update Validators
+            foreach (var validator in _updateValidators)
+            {
+                await validator.ValidateAsync(request);
+            }
+
+            // 3. Update User Model
+            user.FirstName = request.FirstName.Trim();
+            user.LastName = request.LastName.Trim();
+            user.DisplayName = string.IsNullOrWhiteSpace(request.DisplayName)
+                ? $"{request.FirstName} {request.LastName}"
+                : request.DisplayName.Trim();
+            user.PhoneNumber = request.PhoneNumber;
+            user.DateOfBirth = request.DateOfBirth;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _userRepository.UpdateAsync(id, user);
 
             return MapToResponse(user);
         }

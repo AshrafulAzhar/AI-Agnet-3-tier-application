@@ -4,8 +4,10 @@ using UserManagement.Domain.Interfaces;
 
 namespace UserManagement.Domain.DTOs
 {
-    public class UserRegistrationRequest : IUserProfile
+    public class UserUpdateRequest : IUserProfile
     {
+        public string Id { get; set; } // Internal use for validation context
+
         [Required]
         [StringLength(50, MinimumLength = 2)]
         [RegularExpression(@"^[a-zA-Z\s\-']+$", ErrorMessage = "First name can only contain letters, spaces, hyphens, and apostrophes.")]
@@ -18,16 +20,8 @@ namespace UserManagement.Domain.DTOs
 
         public string DisplayName { get; set; }
 
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
         [Phone]
         public string PhoneNumber { get; set; }
-
-        [Required]
-        [MinLength(10)]
-        public string Password { get; set; }
 
         public DateTime? DateOfBirth { get; set; }
     }

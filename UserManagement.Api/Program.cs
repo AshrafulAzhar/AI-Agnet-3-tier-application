@@ -34,10 +34,16 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Validator Registrations
-builder.Services.AddScoped<IValidator<UserRegistrationRequest>, IdentityValidator>();
+// Validator Registrations for Registration
+builder.Services.AddScoped<IValidator<UserRegistrationRequest>, EmailUniquenessValidator>();
+builder.Services.AddScoped<IValidator<UserRegistrationRequest>, PhoneUniquenessValidator<UserRegistrationRequest>>();
+builder.Services.AddScoped<IValidator<UserRegistrationRequest>, SoftDeleteValidator>();
 builder.Services.AddScoped<IValidator<UserRegistrationRequest>, PasswordPolicyValidator>();
-builder.Services.AddScoped<IValidator<UserRegistrationRequest>, AgePolicyValidator>();
+builder.Services.AddScoped<IValidator<UserRegistrationRequest>, AgePolicyValidator<UserRegistrationRequest>>();
+
+// Validator Registrations for Update
+builder.Services.AddScoped<IValidator<UserUpdateRequest>, PhoneUniquenessValidator<UserUpdateRequest>>();
+builder.Services.AddScoped<IValidator<UserUpdateRequest>, AgePolicyValidator<UserUpdateRequest>>();
 
 builder.Services.AddControllers();
 
